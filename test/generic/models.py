@@ -12,6 +12,7 @@ from django.core.files.storage import FileSystemStorage
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
+from django.contrib.auth.models import User as DjangoUser
 from fields import *
 from model_mommy.timezone import smart_datetime as datetime
 
@@ -27,6 +28,8 @@ class Profile(models.Model):
 class User(models.Model):
     profile = models.ForeignKey(Profile, blank=True, null=True)
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(DjangoUser)
 
 class PaymentBill(models.Model):
     user = models.ForeignKey(User)

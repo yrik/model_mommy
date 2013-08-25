@@ -16,6 +16,7 @@ from test.generic.models import UnsupportedModel, DummyGenericRelationModel
 from test.generic.models import DummyNullFieldsModel, DummyBlankFieldsModel
 from test.generic.models import DummyDefaultFieldsModel, DummyMultipleInheritanceModel
 from test.generic.models import DummyGenericForeignKeyModel, NonAbstractPerson
+from test.generic.models import UserProfile
 
 
 class ModelFinderTest(TestCase):
@@ -256,6 +257,8 @@ class MommyCreatesAssociatedModels(TestCase):
         lonely_person = mommy.make(LonelyPerson, only_friend__name='Bob')
         self.assertEqual('Bob', lonely_person.only_friend.name)
 
+    def test_one_to_one_django_user(self):
+        mommy.make(UserProfile)
 
 class HandlingUnsupportedModels(TestCase):
     def test_unsupported_model_raises_an_explanatory_exception(self):

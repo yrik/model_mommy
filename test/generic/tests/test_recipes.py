@@ -7,6 +7,7 @@ from model_mommy.recipe import Recipe, foreign_key, RecipeForeignKey
 from model_mommy.timezone import now
 from model_mommy.exceptions import InvalidQuantityException
 from test.generic.models import Person, DummyNumbersModel, DummyBlankFieldsModel, Dog
+from test.generic.models import UserProfile
 
 
 class TestDefiningRecipes(TestCase):
@@ -265,6 +266,10 @@ class ForeignKeyTestCase(TestCase):
         )
         obj = foreign_key(number_recipe)
         self.assertIsInstance(obj, RecipeForeignKey)
+
+    def test_one_to_one_django_user(self):
+        recipe = Recipe(UserProfile)
+        profile = recipe.make()
 
     def test_not_accept_other_type(self):
         with self.assertRaises(TypeError) as c:
