@@ -1,0 +1,494 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Model Mommy: Smart fixtures for better tests &mdash; Model mommy 1.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Model mommy 1.2 documentation" href="#" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="#">Model mommy 1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="model-mommy-smart-fixtures-for-better-tests">
+<h1>Model Mommy: Smart fixtures for better tests<a class="headerlink" href="#model-mommy-smart-fixtures-for-better-tests" title="Permalink to this headline">¶</a></h1>
+<p><em>Model-mommy</em> offers you a smart way to create fixtures for testing in Django.
+With a simple and powerful API you can create many objects with a single line of code.</p>
+<a class="reference external image-reference" href="https://travis-ci.org/vandersonmota/model_mommy"><img alt="https://travis-ci.org/vandersonmota/model_mommy.png?branch=master" src="https://travis-ci.org/vandersonmota/model_mommy.png?branch=master" /></a>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">pip install model_mommy</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>Let&#8217;s say you have an app <strong>family</strong> with a model like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Kid</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">happy</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">()</span>
+    <span class="n">bio</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+    <span class="n">wanted_games_qtd</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigIntegerField</span><span class="p">()</span>
+    <span class="n">birthday</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">()</span>
+    <span class="n">appointment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>To create a persisted instance, just call <em>Mommy</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+<span class="kn">from</span> <span class="nn">family.models</span> <span class="kn">import</span> <span class="n">Kid</span>
+
+<span class="n">kid</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="n">Kid</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>No need to pass attributes every damn time.</p>
+<p>Importing every model over and over again is boring. So let <em>Mommy</em> import them for you:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="c"># 1st form: app_label.model_name</span>
+<span class="n">kid</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;family.Kid&#39;</span><span class="p">)</span>
+
+<span class="c"># 2nd form: model_name</span>
+<span class="n">dog</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;Dog&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils footnote" frame="void" id="id1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[1]</td><td>You can only use the 2nd form on unique model names. If you have an app
+<em>family</em> with a <em>Dog</em>, and an app <em>farm</em> with a <em>Dog</em>, you must use the
+<cite>app_label.model_name</cite> form.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td><cite>model_name</cite> is case insensitive.</td></tr>
+</tbody>
+</table>
+<div class="section" id="model-relationships">
+<h3>Model Relationships<a class="headerlink" href="#model-relationships" title="Permalink to this headline">¶</a></h3>
+<p><em>Mommy</em> also handles relationships. Say the kid has a dog:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Dog</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;Kid&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>when you ask <em>Mommy</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">rex</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;family.Dog&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>She will also create the <cite>Kid</cite>, automagically.</p>
+</div>
+<div class="section" id="defining-some-attributes">
+<h3>Defining some attributes<a class="headerlink" href="#defining-some-attributes" title="Permalink to this headline">¶</a></h3>
+<p>Of course it&#8217;s possible to explicitly set values for attributes.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">another_kid</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;family.Kid&#39;</span><span class="p">,</span> <span class="n">age</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Related objects attributes are also reachable:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">bobs_dog</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;family.Dog&#39;</span><span class="p">,</span> <span class="n">owner__name</span><span class="o">=</span><span class="s">&#39;Bob&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="non-persistent-objects">
+<h3>Non persistent objects<a class="headerlink" href="#non-persistent-objects" title="Permalink to this headline">¶</a></h3>
+<p>If don&#8217;t need a persisted object, <em>Mommy</em> can handle this for you as well:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">kid</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="s">&#39;family.Kid&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It works like <cite>make</cite>, but it doesn&#8217;t persist the instance.</p>
+</div>
+<div class="section" id="more-than-one-instance">
+<h3>More than one instance<a class="headerlink" href="#more-than-one-instance" title="Permalink to this headline">¶</a></h3>
+<p>If you need to create more than one instance of the model, you can use the <cite>_quantity</cite> parameter for it:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">kids</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s">&#39;family.Kid&#39;</span><span class="p">,</span> <span class="n">_quantity</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p>It also works with <cite>prepare</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">kids</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="s">&#39;family.Kid&#39;</span><span class="p">,</span> <span class="n">_quantity</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="how-mommy-behaves">
+<h2>How mommy behaves?<a class="headerlink" href="#how-mommy-behaves" title="Permalink to this headline">¶</a></h2>
+<p>By default, <em>model-mommy</em> skips fields with <cite>null=True</cite> or <cite>blank=True</cite>. Also if a field has a <em>default</em> value, it will be used.</p>
+<p>You can override this behavior by explicitly defining values.</p>
+<div class="section" id="when-shouldn-t-you-let-mommy-generate-things-for-you">
+<h3>When shouldn&#8217;t you let mommy generate things for you?<a class="headerlink" href="#when-shouldn-t-you-let-mommy-generate-things-for-you" title="Permalink to this headline">¶</a></h3>
+<p>If you have fields with special validation, you should set their values by yourself.</p>
+<p><em>Model-mommy</em> should handle fields that:</p>
+<ol class="arabic simple">
+<li>don&#8217;t matter for the test you&#8217;re writing;</li>
+<li>don&#8217;t require special validation (like unique, etc);</li>
+<li>are required to create the object.</li>
+</ol>
+</div>
+<div class="section" id="currently-supported-fields">
+<h3>Currently supported fields<a class="headerlink" href="#currently-supported-fields" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>BooleanField, IntegerField, BigIntegerField, SmallIntegerField, PositiveIntegerField, PositiveSmallIntegerField, FloatField, DecimalField</li>
+<li>CharField, TextField, SlugField, URLField, EmailField</li>
+<li>ForeignKey, OneToOneField, ManyToManyField (even with through model)</li>
+<li>DateField, DateTimeField, TimeField</li>
+<li>FileField, ImageField</li>
+</ul>
+</div>
+<div class="section" id="custom-fields">
+<h3>Custom fields<a class="headerlink" href="#custom-fields" title="Permalink to this headline">¶</a></h3>
+<p>Model-mommy allows you to define generators methods for your custom fields or overrides its default generators. This could be achieved by specifing a dict on settings that its keys are the field paths and the values their generators functions, as the example bellow:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># on your settings.py file:</span>
+<span class="k">def</span> <span class="nf">gen_func</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s">&#39;value&#39;</span>
+
+<span class="n">MOMMY_CUSTOM_FIELDS_GEN</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;test.generic.fields.CustomField&#39;</span><span class="p">:</span> <span class="n">gen_func</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="recipes">
+<h2>Recipes<a class="headerlink" href="#recipes" title="Permalink to this headline">¶</a></h2>
+<p>If you&#8217;re not confortable with random data or even you just want to improve the semantics of the generated data, there&#8217;s hope for you.</p>
+<p>You can define a <strong>recipe</strong>, which is a set of rules to generate data for your models. Create a module called <cite>mommy_recipes.py</cite> at your app&#8217;s root directory:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy.recipe</span> <span class="kn">import</span> <span class="n">Recipe</span>
+<span class="kn">from</span> <span class="nn">family.models</span> <span class="kn">import</span> <span class="n">Person</span>
+
+<span class="n">person</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Person</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;John Doe&#39;</span><span class="p">,</span>
+    <span class="n">nickname</span> <span class="o">=</span> <span class="s">&#39;joe&#39;</span><span class="p">,</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span>
+    <span class="n">birthday</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span>
+    <span class="n">appointment</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Note you don&#8217;t have to declare all the fields if you don&#8217;t want to. Omitted fields will be generated automatically.</p>
+<p>The variable <cite>person</cite> serves as the recipe name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;family.person&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or if you don&#8217;t want a persisted instance:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">mommy</span><span class="o">.</span><span class="n">prepare_recipe</span><span class="p">(</span><span class="s">&#39;family.person&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can use the <cite>_quantity</cite> parameter as well if you want to create more than one object from a single recipe.</p>
+<p>You can define recipes locally to your module or test case as well. This can be useful for cases where a particular set of values may be unique to a particular test case, but used repeatedly there.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">company_recipe</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Company</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;WidgetCo&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">EmployeeTest</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">employee_recipe</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span>
+            <span class="n">Employee</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">seq</span><span class="p">(</span><span class="s">&#39;Employee &#39;</span><span class="p">),</span>
+            <span class="n">company</span><span class="o">=</span><span class="n">company_recipe</span><span class="o">.</span><span class="n">make</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">test_employee_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">employee_recipe</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="n">_quantity</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c"># test stuff....</span>
+
+    <span class="k">def</span> <span class="nf">test_employee_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">employee1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">employee_recipe</span><span class="o">.</span><span class="n">make</span><span class="p">()</span>
+        <span class="n">task_recipe</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Task</span><span class="p">,</span> <span class="n">employee</span><span class="o">=</span><span class="n">employee1</span><span class="p">)</span>
+        <span class="n">task_recipe</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s">&#39;done&#39;</span><span class="p">)</span>
+        <span class="n">task_recipe</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="n">due_date</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c"># test stuff....</span>
+</pre></div>
+</div>
+<div class="section" id="recipes-with-foreign-keys">
+<h3>Recipes with foreign keys<a class="headerlink" href="#recipes-with-foreign-keys" title="Permalink to this headline">¶</a></h3>
+<p>You can define <cite>foreign_key</cite> relations:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy.recipe</span> <span class="kn">import</span> <span class="n">Recipe</span><span class="p">,</span> <span class="n">foreign_key</span>
+<span class="kn">from</span> <span class="nn">family.models</span> <span class="kn">import</span> <span class="n">Person</span><span class="p">,</span> <span class="n">Dog</span>
+
+
+<span class="n">person</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Person</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;John Doe&#39;</span><span class="p">,</span>
+    <span class="n">nickname</span> <span class="o">=</span> <span class="s">&#39;joe&#39;</span><span class="p">,</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span>
+    <span class="n">birthday</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span>
+    <span class="n">appointment</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="n">dog</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Dog</span><span class="p">,</span>
+    <span class="n">breed</span> <span class="o">=</span> <span class="s">&#39;Pug&#39;</span><span class="p">,</span>
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">foreign_key</span><span class="p">(</span><span class="n">person</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Notice that <cite>person</cite> is a <em>recipe</em>.</p>
+<p>You may be thinking: &#8220;I can put the Person model instance directly in the owner field&#8221;. That&#8217;s not recommended.</p>
+<p>Using the <cite>foreign_key</cite> is important for 2 reasons:</p>
+<ul class="simple">
+<li>Semantics. You&#8217;ll know that attribute is a foreign key when you&#8217;re reading;</li>
+<li>The associated instance will be created only when you call <cite>make_recipe</cite> and not during recipe definition;</li>
+</ul>
+</div>
+<div class="section" id="recipes-with-callables">
+<h3>Recipes with callables<a class="headerlink" href="#recipes-with-callables" title="Permalink to this headline">¶</a></h3>
+<p>It&#8217;s possible to use <em>callables</em> as recipe&#8217;s attribute value.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">model_mommy.recipe</span> <span class="kn">import</span> <span class="n">Recipe</span>
+<span class="kn">from</span> <span class="nn">family.models</span> <span class="kn">import</span> <span class="n">Person</span>
+
+<span class="n">person</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Person</span><span class="p">,</span>
+    <span class="n">birthday</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>When you call <cite>make_recipe</cite>, <em>Mommy</em> will set the attribute to the value returned by the callable.</p>
+</div>
+<div class="section" id="sequences-in-recipes">
+<h3>Sequences in recipes<a class="headerlink" href="#sequences-in-recipes" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes, you have a field with an unique value and using <cite>make</cite> can cause random errors. Also, passing an attribute value just to avoid uniqueness validation problems can be tedious. To solve this you can define a sequence with <cite>seq</cite></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy.recipe</span> <span class="kn">import</span> <span class="n">Recipe</span><span class="p">,</span> <span class="n">seq</span>
+<span class="kn">from</span> <span class="nn">family.models</span> <span class="kn">import</span> <span class="n">Person</span>
+
+<span class="n">person</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Person</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">seq</span><span class="p">(</span><span class="s">&#39;Joe&#39;</span><span class="p">),</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">seq</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;myapp.person&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">name</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="s">&#39;Joe1&#39;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">age</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mi">16</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;myapp.person&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">name</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="s">&#39;Joe2&#39;</span>
+<span class="n">p</span><span class="o">.</span><span class="n">age</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mi">17</span>
+</pre></div>
+</div>
+<p>This will append a counter to strings to avoid uniqueness problems and it will sum the counter with numerical values.</p>
+<p>You can also provide an optional <cite>increment_by</cite> argument which will modify incrementing behaviour. This can be an integer, float or Decimal.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">person</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">(</span><span class="n">Person</span><span class="p">,</span>
+    <span class="n">age</span> <span class="o">=</span> <span class="n">seq</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="n">increment_by</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">height_ft</span> <span class="o">=</span> <span class="n">seq</span><span class="p">(</span><span class="mf">5.5</span><span class="p">,</span> <span class="n">increment_by</span><span class="o">=.</span><span class="mi">25</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;myapp.person&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">age</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mi">18</span>
+<span class="n">p</span><span class="o">.</span><span class="n">height_ft</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mf">5.75</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;myapp.person&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">age</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mi">21</span>
+<span class="n">p</span><span class="o">.</span><span class="n">height_ft</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="mf">6.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="overriding-recipe-definitions">
+<h3>Overriding recipe definitions<a class="headerlink" href="#overriding-recipe-definitions" title="Permalink to this headline">¶</a></h3>
+<p>Passing values when calling <cite>make_recipe</cite> or <cite>prepare_recipe</cite> will override the recipe rule.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">model_mommy</span> <span class="kn">import</span> <span class="n">mommy</span>
+
+<span class="n">mommy</span><span class="o">.</span><span class="n">make_recipe</span><span class="p">(</span><span class="s">&#39;model_mommy.person&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;Peter Parker&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is useful when you have to create multiple objects and you have some unique field, for instance.</p>
+</div>
+</div>
+<div class="section" id="deprecation-warnings">
+<h2>Deprecation Warnings<a class="headerlink" href="#deprecation-warnings" title="Permalink to this headline">¶</a></h2>
+<p>Because of the changes of model_mommy&#8217;s API, the following methods are deprecated and will be removed in one of the future releases:</p>
+<blockquote>
+<div><ul class="simple">
+<li><cite>mommy.make_one</cite> -&gt; should use the method <cite>mommy.make</cite> instead</li>
+<li><cite>mommy.prepare_one</cite> -&gt; should use the method <cite>mommy.prepare</cite> instead</li>
+<li><cite>mommy.make_many</cite> -&gt; should use the method <cite>mommy.make</cite> with the <cite>_quantity</cite> parameter instead</li>
+<li><cite>mommy.make_many_from_recipe</cite> -&gt; should use the method <cite>mommy.make_recipe</cite> with the <cite>_quantity</cite> parameter instead</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="known-issues">
+<h2>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="django-taggit">
+<h3>django-taggit<a class="headerlink" href="#django-taggit" title="Permalink to this headline">¶</a></h3>
+<p>Model-mommy identifies django-taggit&#8217;s <cite>TaggableManager</cite> as a normal Django field, which can lead to errors:</p>
+<div class="highlight-pycon"><div class="highlight"><pre><span class="go">TypeError: &lt;class &#39;taggit.managers.TaggableManager&#39;&gt; is not supported by mommy.</span>
+</pre></div>
+</div>
+<p>The fix for this is to set <tt class="docutils literal"><span class="pre">blank=True</span></tt> on your <tt class="docutils literal"><span class="pre">TaggableManager</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="extensions">
+<h2>Extensions<a class="headerlink" href="#extensions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="geodjango">
+<h3>GeoDjango<a class="headerlink" href="#geodjango" title="Permalink to this headline">¶</a></h3>
+<p>Works with it? This project has some custom generators for it:
+<a class="reference external" href="https://github.com/sigma-consultoria/mommy_spatial_generators">https://github.com/sigma-consultoria/mommy_spatial_generators</a></p>
+</div>
+</div>
+<div class="section" id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Prepare a virtual environment.</li>
+</ol>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">pip install virtualenvwrapper</span>
+<span class="go">mkvirtualenv --no-site-packages --distribute</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li>Install the requirements.</li>
+</ol>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">pip install -r requirements.txt</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li>Run the tests.</li>
+</ol>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">make test</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="inspiration">
+<h2>Inspiration<a class="headerlink" href="#inspiration" title="Permalink to this headline">¶</a></h2>
+<p><em>Model-mommy</em> was inspired by many great open source software like ruby&#8217;s ObjectDaddy and FactoryGirl.</p>
+</div>
+<div class="section" id="doubts-loved-it-hated-it-suggestions">
+<h2>Doubts? Loved it? Hated it? Suggestions?<a class="headerlink" href="#doubts-loved-it-hated-it-suggestions" title="Permalink to this headline">¶</a></h2>
+<p>Join our mailing list for support, development and ideas!</p>
+<ul class="simple">
+<li><a class="reference external" href="https://groups.google.com/group/model-mommy">https://groups.google.com/group/model-mommy</a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Model Mommy: Smart fixtures for better tests</a><ul>
+<li><a class="reference internal" href="#install">Install</a></li>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a><ul>
+<li><a class="reference internal" href="#model-relationships">Model Relationships</a></li>
+<li><a class="reference internal" href="#defining-some-attributes">Defining some attributes</a></li>
+<li><a class="reference internal" href="#non-persistent-objects">Non persistent objects</a></li>
+<li><a class="reference internal" href="#more-than-one-instance">More than one instance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#how-mommy-behaves">How mommy behaves?</a><ul>
+<li><a class="reference internal" href="#when-shouldn-t-you-let-mommy-generate-things-for-you">When shouldn&#8217;t you let mommy generate things for you?</a></li>
+<li><a class="reference internal" href="#currently-supported-fields">Currently supported fields</a></li>
+<li><a class="reference internal" href="#custom-fields">Custom fields</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#recipes">Recipes</a><ul>
+<li><a class="reference internal" href="#recipes-with-foreign-keys">Recipes with foreign keys</a></li>
+<li><a class="reference internal" href="#recipes-with-callables">Recipes with callables</a></li>
+<li><a class="reference internal" href="#sequences-in-recipes">Sequences in recipes</a></li>
+<li><a class="reference internal" href="#overriding-recipe-definitions">Overriding recipe definitions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#deprecation-warnings">Deprecation Warnings</a></li>
+<li><a class="reference internal" href="#known-issues">Known Issues</a><ul>
+<li><a class="reference internal" href="#django-taggit">django-taggit</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#extensions">Extensions</a><ul>
+<li><a class="reference internal" href="#geodjango">GeoDjango</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributing">Contributing</a></li>
+<li><a class="reference internal" href="#inspiration">Inspiration</a></li>
+<li><a class="reference internal" href="#doubts-loved-it-hated-it-suggestions">Doubts? Loved it? Hated it? Suggestions?</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="#">Model mommy 1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Vanderson &#34;Argentino&#34; Mota.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
