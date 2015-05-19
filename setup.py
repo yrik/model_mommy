@@ -11,7 +11,7 @@ setuptools.setup(
     include_package_data=True,  # declarations in MANIFEST.in
     install_requires=open(join(dirname(__file__), 'requirements.txt')).readlines(),
     tests_require=[
-        'django<1.7',
+        'django<1.9',
         'pil',
         'tox',
     ],
@@ -30,8 +30,11 @@ setuptools.setup(
         'Operating System :: OS Independent',
         'Topic :: Software Development',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
     ],
 )

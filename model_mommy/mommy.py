@@ -2,15 +2,18 @@
 import warnings
 
 from django.conf import settings
-from django.utils import importlib
-from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 import django
-from django.db.models.loading import get_model
 if django.VERSION >= (1, 7):
+    import importlib
     from django.apps import apps
+    get_model = apps.get_model
+    from django.contrib.contenttypes.fields import GenericRelation
 else:
+    from django.db.models.loading import get_model
+    from django.utils import importlib
     from django.db.models.loading import cache
+    from django.contrib.contenttypes.generic import GenericRelation
 from django.db.models.base import ModelBase
 from django.db.models import (
     CharField, EmailField, SlugField, TextField, URLField,
@@ -30,6 +33,11 @@ try:
     from django.db.models import GenericIPAddressField
 except ImportError:
     GenericIPAddressField = IPAddressField
+
+try:
+    from django.db.models import BinaryField
+except ImportError:
+    BinaryField = None
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_ipv4_address
@@ -54,7 +62,12 @@ mock_file_txt = join(dirname(__file__), 'mock_file.txt')
 
 
 #TODO: improve related models handling
-foreign_key_required = [lambda field: ('model', field.related.parent_model)]
+def _fk_model(field):
+    try:
+        return ('model', field.related.parent_model)
+    except AttributeError:
+        return ('model', field.related_model)
+foreign_key_required = [_fk_model]
 
 MAX_MANY_QUANTITY = 5
 
@@ -142,6 +155,9 @@ default_mapping = {
 
     ContentType: generators.gen_content_type,
 }
+
+if BinaryField:
+    default_mapping[BinaryField] = generators.gen_byte_string
 
 
 class ModelFinder(object):
@@ -259,14 +275,19 @@ class Mommy(object):
     def prepare(self, **attrs):
         '''Creates, but does not persist, an instance of the model
         associated with Mommy instance.'''
-        self.type_mapping[ForeignKey] = prepare
-        self.type_mapping[OneToOneField] = prepare
+        if django.VERSION >= (1, 8):
+            self.type_mapping[ForeignKey] = make
+            self.type_mapping[OneToOneField] = make
+        else:
+            self.type_mapping[ForeignKey] = prepare
+            self.type_mapping[OneToOneField] = prepare
         return self._make(commit=False, **attrs)
 
     def get_fields(self):
         return self.model._meta.fields + self.model._meta.many_to_many
 
     def _make(self, commit=True, **attrs):
+        fill_in_optional = attrs.pop('_fill_optional', False)
         is_rel_field = lambda x: '__' in x
         iterator_attrs = dict((k, v) for k, v in attrs.items() if is_iterator(v))
         model_attrs = dict((k, v) for k, v in attrs.items() if not is_rel_field(k))
@@ -274,6 +295,11 @@ class Mommy(object):
         self.rel_fields = [x.split('__')[0] for x in self.rel_attrs.keys() if is_rel_field(x)]
 
         for field in self.get_fields():
+            # check for fill optional argument
+            if isinstance(fill_in_optional, bool):
+                field.fill_optional = fill_in_optional
+            else:
+                field.fill_optional = field.name in fill_in_optional
 
             # Skip links to parent so parent is not created twice.
             if isinstance(field, OneToOneField) and field.rel.parent_link:
@@ -281,12 +307,12 @@ class Mommy(object):
 
             field_value_not_defined = field.name not in model_attrs
 
-            if isinstance(field, (AutoField, generic.GenericRelation)):
+            if isinstance(field, (AutoField, GenericRelation)):
                 continue
 
             if all([field.name not in model_attrs, field.name not in self.rel_fields, field.name not in self.attr_mapping]):
                 # Django is quirky in that BooleanFields are always "blank", but have no default default.
-                if not issubclass(field.__class__, Field) or field.has_default() or (field.blank and not isinstance(field, BooleanField)):
+                if not field.fill_optional and (not issubclass(field.__class__, Field) or field.has_default() or (field.blank and not isinstance(field, BooleanField))):
                     continue
 
             if isinstance(field, ManyToManyField):
@@ -295,7 +321,7 @@ class Mommy(object):
                 else:
                     self.m2m_dict[field.name] = model_attrs.pop(field.name)
             elif field_value_not_defined:
-                if field.name not in self.rel_fields and field.null:
+                if field.name not in self.rel_fields and (field.null and not field.fill_optional):
                     continue
                 else:
                     model_attrs[field.name] = self.generate_value(field)
@@ -305,14 +331,14 @@ class Mommy(object):
                 try:
                     model_attrs[field.name] = advance_iterator(iterator_attrs[field.name])
                 except StopIteration:
-                    raise RecipeIteratorEmpty('{} iterator is empty.'.format(field.name))
+                    raise RecipeIteratorEmpty('{0} iterator is empty.'.format(field.name))
 
         return self.instance(model_attrs, _commit=commit)
 
     def m2m_value(self, field):
         if field.name in self.rel_fields:
             return self.generate_value(field)
-        if not self.make_m2m or field.null:
+        if not self.make_m2m or field.null and not field.fill_optional:
             return []
         return self.generate_value(field)
 
@@ -322,6 +348,7 @@ class Mommy(object):
             field = getattr(self.model, k, None)
             if isinstance(field, ForeignRelatedObjectsDescriptor):
                 one_to_many_keys[k] = attrs.pop(k)
+
         instance = self.model(**attrs)
         # m2m only works for persisted instances
         if _commit:
@@ -336,25 +363,23 @@ class Mommy(object):
 
     def _handle_m2m(self, instance):
         for key, values in self.m2m_dict.items():
-            if not values:
-                continue
-
+            for value in values:
+                if not value.pk:
+                    value.save()
             m2m_relation = getattr(instance, key)
             through_model = m2m_relation.through
-            through_fields = through_model._meta.fields
 
-            instance_key, value_key = '', ''
-            for field in through_fields:
-                if isinstance(field, ForeignKey):
-                    if isinstance(instance, field.rel.to):
-                        instance_key = field.name
-                    elif isinstance(values[0], field.rel.to):
-                        value_key = field.name
+            # using related manager to fire m2m_changed signal
+            if through_model._meta.auto_created:
+                m2m_relation.add(*values)
+            else:
+                for value in values:
+                    base_kwargs = {
+                        m2m_relation.source_field_name: instance,
+                        m2m_relation.target_field_name: value
+                    }
+                    make(through_model, **base_kwargs)
 
-            base_kwargs = {instance_key: instance}
-            for model_instance in values:
-                base_kwargs[value_key] = model_instance
-                make(through_model, **base_kwargs)
 
     def _ip_generator(self, field):
         protocol = getattr(field, 'protocol', '').lower()

@@ -1,4 +1,5 @@
 #coding: utf-8
+from functools import wraps
 import inspect
 import itertools
 from . import mommy
@@ -7,6 +8,19 @@ from .exceptions import RecipeNotFound, RecipeIteratorEmpty
 
 from six import string_types
 import datetime
+
+
+# Python 2.6.x compatibility code
+itertools_count = itertools.count
+try:
+    itertools_count(0, 1)
+except TypeError:
+    def count(start=0, step=1):
+        n = start
+        while True:
+            yield n
+            n += step
+    itertools_count =  count
 
 finder = mommy.ModelFinder()
 
@@ -52,6 +66,11 @@ class Recipe(object):
     def prepare(self, **attrs):
         return mommy.prepare(self.model, **self._mapping(attrs))
 
+    def extend(self, **attrs):
+        attr_mapping = self.attr_mapping.copy()
+        attr_mapping.update(attrs)
+        return Recipe(self.model, **attr_mapping)
+
 
 class RecipeForeignKey(object):
 
@@ -78,8 +97,21 @@ def foreign_key(recipe):
     return RecipeForeignKey(recipe)
 
 
+def _total_secs(td):
+    """
+    python 2.6 compatible timedelta total seconds calculation
+    backport from
+    https://docs.python.org/2.7/library/datetime.html#datetime.timedelta.total_seconds
+    """
+    if hasattr(td, 'total_seconds'):
+        return td.total_seconds()
+    else:
+        #py26
+        return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10.0**6
+
+
 def seq(value, increment_by=1):
-    if type(value) in {datetime.datetime, datetime.date,  datetime.time}:
+    if type(value) in [datetime.datetime, datetime.date,  datetime.time]:
         if type(value) is datetime.date:
             date = datetime.datetime.combine(value, datetime.datetime.now().time())
         elif type(value) is datetime.time:
@@ -87,9 +119,9 @@ def seq(value, increment_by=1):
         else:
             date = value
         # convert to epoch time
-        start = (date - datetime.datetime(1970,1,1)).total_seconds()
-        increment_by =  increment_by.total_seconds()
-        for n in itertools.count(increment_by, increment_by):
+        start = _total_secs((date - datetime.datetime(1970, 1, 1)))
+        increment_by = _total_secs(increment_by)
+        for n in itertools_count(increment_by, increment_by):
             series_date = tz_aware(datetime.datetime.utcfromtimestamp(start + n))
             if type(value) is datetime.time:
                 yield series_date.time()
@@ -98,8 +130,9 @@ def seq(value, increment_by=1):
             else:
                 yield series_date
     else:
-        for n in itertools.count(increment_by, increment_by):
+        for n in itertools_count(increment_by, increment_by):
             yield value + type(value)(n)
+
 
 class related(object):
     def __init__(self, *args):

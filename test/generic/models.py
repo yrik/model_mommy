@@ -12,7 +12,11 @@ from django.db import models
 from django.core.files.storage import FileSystemStorage
 
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
+if VERSION >= (1, 7):
+    from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
+else:
+    from django.contrib.contenttypes.generic import GenericRelation, GenericForeignKey
+
 from .fields import *
 from model_mommy.timezone import smart_datetime as datetime
 import datetime as base_datetime
@@ -57,7 +61,7 @@ class Person(models.Model):
     gender = models.CharField(max_length=1, choices=GENDER_CH)
     happy = models.BooleanField(default=True)
     unhappy = models.BooleanField(default=False)
-    bipolar = models.BooleanField()
+    bipolar = models.BooleanField(default=False)
     name = models.CharField(max_length=30)
     nickname = models.SlugField(max_length=36)
     age = models.IntegerField()
@@ -67,6 +71,12 @@ class Person(models.Model):
     appointment = models.DateTimeField()
     blog = models.URLField()
     occupation = models.CharField(max_length=10, choices=OCCUPATION_CHOCIES)
+    try:
+        name_hash = models.BinaryField(max_length=16)
+    except AttributeError:
+        # We can't test the binary field if it is not supported
+        # (django < 1,6)
+        pass
 
     #backward compatibilty with Django 1.1
     try:
@@ -79,6 +89,7 @@ class Dog(models.Model):
     owner = models.ForeignKey('Person')
     breed = models.CharField(max_length=50)
     created = models.DateTimeField(auto_now_add=True)
+    friends_with = models.ManyToManyField('Dog')
 
 class GuardDog(Dog):
     pass
@@ -137,11 +148,11 @@ class DummyEmailModel(models.Model):
 class DummyGenericForeignKeyModel(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey('content_type', 'object_id')
 
 
 class DummyGenericRelationModel(models.Model):
-    relation = generic.GenericRelation(DummyGenericForeignKeyModel)
+    relation = GenericRelation(DummyGenericForeignKeyModel)
 
 
 class DummyNullFieldsModel(models.Model):
@@ -151,9 +162,10 @@ class DummyNullFieldsModel(models.Model):
 
 class DummyBlankFieldsModel(models.Model):
     blank_char_field = models.CharField(max_length=50, blank=True)
-    blank_text_field = models.TextField(blank=True)
+    blank_text_field = models.TextField(max_length=300, blank=True)
 
 class DummyDefaultFieldsModel(models.Model):
+    default_id = models.AutoField(primary_key=True)
     default_char_field = models.CharField(max_length=50, default='default')
     default_text_field = models.TextField(default='default')
     default_int_field = models.IntegerField(default=123)
@@ -183,6 +195,7 @@ else:
 
 
 class DummyMultipleInheritanceModel(DummyDefaultFieldsModel, Person):
+    my_id = models.AutoField(primary_key=True)
     my_dummy_field = models.IntegerField()
 
 class Ambiguous(models.Model):

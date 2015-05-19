@@ -1,11 +1,13 @@
 # -*- coding:utf-8 -*-
-from decimal import Decimal
 
+import django
+from decimal import Decimal
 from django.test import TestCase
 from django import VERSION
 from django.db.models.options import Options
 from django.db.models import Manager
 from mock import patch
+from django.db.models.signals import m2m_changed
 from model_mommy import mommy
 from model_mommy import generators
 from model_mommy.exceptions import ModelNotFound, AmbiguousModelName, InvalidQuantityException
@@ -20,7 +22,7 @@ from test.generic.models import DummyGenericForeignKeyModel, NonAbstractPerson
 
 class ModelFinderTest(TestCase):
     def test_unicode_regression(self):
-        obj = mommy.prepare(u'generic.Person')
+        obj = mommy.prepare('generic.Person')
         self.assertIsInstance(obj, Person)
 
     def test_model_class(self):
@@ -104,8 +106,8 @@ class MommyCreatesSimpleModel(TestCase):
     def test_multiple_inheritance_creation(self):
         multiple = mommy.make(DummyMultipleInheritanceModel)
         self.assertIsInstance(multiple, DummyMultipleInheritanceModel)
-        self.assertTrue(Person.objects.filter(id=multiple.id))
-        self.assertTrue(DummyDefaultFieldsModel.objects.filter(id=multiple.id))
+        self.assertTrue(Person.objects.filter(id=multiple.my_id))
+        self.assertTrue(DummyDefaultFieldsModel.objects.filter(default_id=multiple.id))
 
 
 class MommyRepeatedCreatesSimpleModel(TestCase):
@@ -186,22 +188,26 @@ class MommyCreatesAssociatedModels(TestCase):
         for person in Person.objects.all():
             self.assertEqual(person.name, 'john')
 
-    def test_prepare_should_not_create_one_object(self):
+    def test_prepare_fk(self):
         dog = mommy.prepare(Dog)
         self.assertIsInstance(dog, Dog)
         self.assertIsInstance(dog.owner, Person)
 
-        # makes sure database is clean
-        self.assertEqual(Person.objects.all().count(), 0)
+        if django.VERSION >= (1, 8):
+            self.assertEqual(Person.objects.all().count(), 1)
+        else:
+            self.assertEqual(Person.objects.all().count(), 0)
         self.assertEqual(Dog.objects.all().count(), 0)
 
-    def test_prepare_one_to_one_should_not_persist_one_object(self):
+    def test_prepare_one_to_one(self):
         lonely_person = mommy.prepare(LonelyPerson)
 
-        # makes sure database is clean
         self.assertEqual(LonelyPerson.objects.all().count(), 0)
         self.assertTrue(isinstance(lonely_person.only_friend, Person))
-        self.assertEqual(Person.objects.all().count(), 0)
+        if django.VERSION >= (1, 8):
+            self.assertEqual(Person.objects.all().count(), 1)
+        else:
+            self.assertEqual(Person.objects.all().count(), 0)
 
     def test_create_one_to_one(self):
         lonely_person = mommy.make(LonelyPerson)
@@ -231,6 +237,9 @@ class MommyCreatesAssociatedModels(TestCase):
         self.assertEqual(store.customers.count(), mommy.MAX_MANY_QUANTITY)
 
     def test_create_many_to_many_with_through_option(self):
+        """
+         This does not works
+        """
         # School student's attr is a m2m relationship with a model through
         school = mommy.make(School, make_m2m=True)
         self.assertEqual(School.objects.count(), 1)
@@ -239,7 +248,7 @@ class MommyCreatesAssociatedModels(TestCase):
         self.assertEqual(Person.objects.count(), mommy.MAX_MANY_QUANTITY)
 
     def test_does_not_create_many_to_many_as_default(self):
-        store = mommy.make(Store, make_m2m=False)
+        store = mommy.make(Store)
         self.assertEqual(store.employees.count(), 0)
         self.assertEqual(store.customers.count(), 0)
 
@@ -250,6 +259,15 @@ class MommyCreatesAssociatedModels(TestCase):
     def test_nullable_many_to_many_is_not_created_even_if_flagged(self):
         classroom = mommy.make(Classroom, make_m2m=True)
         self.assertEqual(classroom.students.count(), 0)
+
+    def test_m2m_changed_signal_is_fired(self):
+        # Use object attrs instead of mocks for Django 1.4 compat
+        self.m2m_changed_fired = False
+        def test_m2m_changed(*args, **kwargs):
+            self.m2m_changed_fired = True
+        m2m_changed.connect(test_m2m_changed, dispatch_uid='test_m2m_changed')
+        store = mommy.make(Store, make_m2m=True)
+        self.assertTrue(self.m2m_changed_fired)
 
     def test_simple_creating_person_with_parameters(self):
         kid = mommy.make(Person, happy=True, age=10, name='Mike')
@@ -284,6 +302,10 @@ class MommyCreatesAssociatedModels(TestCase):
         user = mommy.make(User)
         self.assertFalse(user.profile)
 
+    def test_passing_m2m_value(self):
+        store = mommy.make(Store, customers=[mommy.make(Person)])
+        self.assertEqual(store.customers.count(), 1)
+
     def test_ensure_recursive_ForeignKey_population(self):
         bill = mommy.make(PaymentBill, user__profile__email="a@b.com")
         self.assertEqual('a@b.com', bill.user.profile.email)
@@ -301,7 +323,7 @@ class MommyCreatesAssociatedModels(TestCase):
 
     def test_allow_create_fkey_related_model(self):
         try:
-            person = mommy.make(Person, dog_set=[mommy.prepare(Dog), mommy.prepare(Dog)])
+            person = mommy.make(Person, dog_set=[mommy.make(Dog), mommy.make(Dog)])
         except TypeError:
             self.fail('type error raised')
 
@@ -335,11 +357,46 @@ class SkipNullsTestCase(TestCase):
         self.assertEqual(dummy.null_integer_field, None)
 
 
+class FillNullsTestCase(TestCase):
+    def test_create_nullable_many_to_many_if_flagged_and_fill_field_optional(
+        self):
+        classroom = mommy.make(Classroom, make_m2m=True, _fill_optional=[
+            'students'])
+        self.assertEqual(classroom.students.count(), 5)
+
+    def test_create_nullable_many_to_many_if_flagged_and_fill_optional(self):
+        classroom = mommy.make(Classroom, make_m2m=True, _fill_optional=True)
+        self.assertEqual(classroom.students.count(), 5)
+
+    def test_nullable_many_to_many_is_not_created_if_not_flagged_and_fill_optional(self):
+        classroom = mommy.make(Classroom, make_m2m=False, _fill_optional=True)
+        self.assertEqual(classroom.students.count(), 0)
+
+
 class SkipBlanksTestCase(TestCase):
     def test_skip_blank(self):
         dummy = mommy.make(DummyBlankFieldsModel)
         self.assertEqual(dummy.blank_char_field, '')
         self.assertEqual(dummy.blank_text_field, '')
+
+
+class FillBlanksTestCase(TestCase):
+    def test_fill_field_optional(self):
+        dummy = mommy.make(DummyBlankFieldsModel, _fill_optional=['blank_char_field'])
+        self.assertEqual(len(dummy.blank_char_field), 50)
+
+    def test_fill_many_optional(self):
+        dummy = mommy.make(DummyBlankFieldsModel, _fill_optional=['blank_char_field', 'blank_text_field'])
+        self.assertEqual(len(dummy.blank_text_field), 300)
+
+    def test_fill_all_optional(self):
+        dummy = mommy.make(DummyBlankFieldsModel, _fill_optional=True)
+        self.assertEqual(len(dummy.blank_char_field), 50)
+        self.assertEqual(len(dummy.blank_text_field), 300)
+
+    def test_fill_optional_with_integer(self):
+        with self.assertRaises(TypeError):
+            dummy = mommy.make(DummyBlankFieldsModel, _fill_optional=1)
 
 
 class SkipDefaultsTestCase(TestCase):

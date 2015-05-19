@@ -1,6 +1,7 @@
 #coding: utf-8
 
 import itertools
+import django
 from random import choice
 from mock import patch
 from decimal import Decimal
@@ -208,6 +209,13 @@ class TestExecutingRecipes(TestCase):
             self.assertIsInstance(person, Person)
             self.assertNotEqual(person.id, None)
 
+    def test_make_extended_recipe(self):
+        extended_dog = mommy.make_recipe('test.generic.extended_dog')
+        self.assertEqual(extended_dog.breed, 'Super basset')
+        # No side effects happened due to extension
+        base_dog = mommy.make_recipe('test.generic.dog')
+        self.assertEqual(base_dog.breed, 'Pug')
+
     def test_make_recipe_with_quantity_parameter_respection_model_args(self):
         people = mommy.make_recipe('test.generic.person', _quantity=3, name='Dennis Ritchie', age=70)
         self.assertEqual(len(people), 3)
@@ -356,7 +364,10 @@ class ForeignKeyTestCase(TestCase):
         self.assertEqual(dog.owner.name, 'James')
 
         dog = dog_recipe.prepare(owner__name='Zezin')
-        self.assertEqual(Person.objects.count(), 1)
+        if django.VERSION >= (1, 8):
+            self.assertEqual(Person.objects.count(), 2)
+        else:
+            self.assertEqual(Person.objects.count(), 1)
         self.assertEqual(dog.owner.name, 'Zezin')
 
     def test_related_models_recipes(self):
@@ -364,6 +375,16 @@ class ForeignKeyTestCase(TestCase):
         self.assertEqual(lady.dog_set.count(), 2)
         self.assertEqual(lady.dog_set.all()[0].breed, 'Pug')
         self.assertEqual(lady.dog_set.all()[1].breed, 'Basset')
+
+
+class M2MFieldTestCase(TestCase):
+    def test_create_many_to_many(self):
+        dog = mommy.make_recipe('test.generic.dog_with_friends')
+        self.assertEqual(len(dog.friends_with.all()), 2)
+        for friend in dog.friends_with.all():
+            self.assertEqual(friend.breed, 'Pug')
+            self.assertEqual(friend.owner.name, 'John Doe')
+
 
 class TestSequences(TestCase):
     def test_increment_for_strings(self):

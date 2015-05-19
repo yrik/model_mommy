@@ -37,6 +37,11 @@ def configure_settings(options):
             TEST_ROOT=join(dirname(__file__), 'test', 'generic', 'tests'),
         )
 
+        if django.VERSION >= (1, 7):
+            params.update(
+                MIDDLEWARE_CLASSES=tuple()
+            )
+
         # Force the use of timezone aware datetime and change Django's warning to
         # be treated as errors.
         if getattr(options, 'USE_TZ', False):
@@ -66,10 +71,14 @@ def get_runner(settings):
 
 
 def runtests(options=None, labels=None):
-    if not labels:
-        labels = ['generic']
-
     settings = configure_settings(options)
+    if django.VERSION >= (1, 8):
+        settings.TEST_RUNNER='django.test.runner.DiscoverRunner'
+        if not labels:
+            labels = ['test.generic']
+    else:
+        if not labels:
+            labels = ['generic']
     runner = get_runner(settings)
     if django.VERSION >= (1, 7):
         django.setup()

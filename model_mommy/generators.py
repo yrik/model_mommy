@@ -16,8 +16,15 @@ from os.path import abspath, join, dirname
 from random import randint, choice, random
 from django import VERSION
 from django.core.files.base import ContentFile
+import six
 
 from model_mommy.timezone import now
+
+# Map unicode to str in Python 2.x since bytes can be used
+try:
+    str = unicode
+except NameError:
+    pass
 
 
 MAX_LENGTH = 300
@@ -32,13 +39,13 @@ def get_content_file(content, name):
         return ContentFile(content, name=name)
 
 def gen_file_field():
-    name = u'mock_file.txt'
+    name = 'mock_file.txt'
     file_path = abspath(join(dirname(__file__), name))
     with open(file_path, 'rb') as f:
         return get_content_file(f.read(), name=name)
 
 def gen_image_field():
-    name = u'mock-img.jpeg'
+    name = 'mock-img.jpeg'
     file_path = abspath(join(dirname(__file__), name))
     with open(file_path, 'rb') as f:
         return get_content_file(f.read(), name=name)
@@ -95,13 +102,13 @@ def gen_time():
 
 
 def gen_string(max_length):
-    return u''.join(choice(string.ascii_letters) for i in range(max_length))
+    return str(''.join(choice(string.ascii_letters) for i in range(max_length)))
 gen_string.required = ['max_length']
 
 
 def gen_slug(max_length):
     valid_chars = string.ascii_letters + string.digits + '_-'
-    return u''.join(choice(valid_chars) for i in range(max_length))
+    return str(''.join(choice(valid_chars) for i in range(max_length)))
 gen_slug.required = ['max_length']
 
 
@@ -114,11 +121,11 @@ def gen_boolean():
 
 
 def gen_url():
-    return u'http://www.%s.com' % gen_string(30)
+    return str('http://www.%s.com/' % gen_string(30))
 
 
 def gen_email():
-    return u"%s@example.com" % gen_string(10)
+    return "%s@example.com" % gen_string(10)
 
 
 def gen_ipv6():
@@ -133,6 +140,13 @@ def gen_ipv46():
     ip_gen = choice([gen_ipv4, gen_ipv6])
     return ip_gen()
 
+
+def gen_byte_string(max_length=16):
+    generator = (randint(0, 255) for x in range(max_length))
+    if six.PY2:
+        return "".join(map(chr, generator))
+    elif six.PY3:
+        return bytes(generator)
 
 def gen_content_type():
     from django.contrib.contenttypes.models import ContentType
